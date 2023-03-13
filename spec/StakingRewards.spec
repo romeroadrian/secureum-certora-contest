@@ -181,6 +181,31 @@ rule monotonicityOfStakeWithSupply() {
     assert tokenBalanceBefore > tokenBalanceAfter <=> totalSupplyBefore > totalSupplyAfter;
 }
 
+rule monotonicityOfRewardPerToken() {
+    env e;
+    method f;
+    calldataarg args;
+
+    uint256 rewardPerTokenStoredBefore = rewardPerTokenStored();
+    f(e, args);
+    uint256 rewardPerTokenStoredAfter = rewardPerTokenStored();
+
+    assert rewardPerTokenStoredAfter >= rewardPerTokenStoredBefore;
+}
+
+rule monotonicityOfUserRewardPerTokenPaid() {
+    env e;
+    method f;
+    calldataarg args;
+    address account;
+
+    uint256 userRewardPerTokenPaidBefore = userRewardPerTokenPaid(account);
+    f(e, args);
+    uint256 userRewardPerTokenPaidAfter = userRewardPerTokenPaid(account);
+
+    assert userRewardPerTokenPaidAfter >= userRewardPerTokenPaidBefore;
+}
+
 // State transition
 
 // OK!
