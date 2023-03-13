@@ -361,3 +361,25 @@ rule nonStakerCannotClaimRewards(method f) filtered {
 
     assert balanceBefore == balanceAfter;
 }
+
+// OK!
+rule stakeAfterFinishDoesntYieldRewards() {
+    env e1;
+    env e2;
+    uint256 amount;
+
+    require e1.msg.sender == e2.msg.sender;
+    require e1.block.timestamp < e2.block.timestamp;
+
+    require finishAt() < e1claim.block.timestamp;
+    require balanceOf(e1.msg.sender) == 0;
+    require rewards(e1.msg.sender) == 0;
+
+    uint256 balanceBefore = rewardsToken.balanceOf(e1.msg.sender);
+
+    stake(e1, amount);
+
+    getReward(e2);
+
+    assert balanceBefore == rewardsToken.balanceOf(e1.msg.sender);
+}
