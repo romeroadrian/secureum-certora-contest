@@ -183,6 +183,23 @@ rule monotonicityOfStakeWithSupply() {
 
 // State transition
 
+// OK!
+rule startRewardsState() {
+    env e;
+    method f;
+    calldataarg args;
+
+    require finishAt() == 0;
+
+    f(e, args);
+
+    assert finishAt() != 0 => (
+        f.selector == notifyRewardAmount(uint256).selector &&
+        rewardRate() > 0 &&
+        rewardsToken.balanceOf(currentContract) >= rewardRate() * duration()
+    );
+}
+
 // Valid state
 
 // OK!
