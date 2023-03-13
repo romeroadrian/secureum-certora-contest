@@ -200,6 +200,53 @@ rule startRewardsState() {
     );
 }
 
+// OK!
+rule userStakesState() {
+    env e;
+    method f;
+    calldataarg args;
+
+    require callerIsNotContract(e);
+
+    uint256 balanceBefore = balanceOf(e.msg.sender);
+
+    f(e, args);
+
+    assert balanceBefore < balanceOf(e.msg.sender) => (f.selector == stake(uint256).selector);
+}
+
+// OK!
+rule userWithdrawsState() {
+    env e;
+    method f;
+    calldataarg args;
+
+    require callerIsNotContract(e);
+
+    uint256 balanceBefore = balanceOf(e.msg.sender);
+
+    f(e, args);
+
+    assert balanceBefore > balanceOf(e.msg.sender) => (f.selector == withdraw(uint256).selector);
+}
+
+// OK!
+rule userGetRewardState() {
+    env e;
+    method f;
+    calldataarg args;
+
+    require callerIsNotContract(e);
+
+    updateRewardHelper(e, e.msg.sender);
+
+    uint256 rewardsBefore = rewards(e.msg.sender);
+
+    f(e, args);
+
+    assert rewards(e.msg.sender) < rewardsBefore => (f.selector == getReward().selector);
+}
+
 // Valid state
 
 // OK!
