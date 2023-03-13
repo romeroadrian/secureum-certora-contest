@@ -371,7 +371,7 @@ rule stakeAfterFinishDoesntYieldRewards() {
     require e1.msg.sender == e2.msg.sender;
     require e1.block.timestamp < e2.block.timestamp;
 
-    require finishAt() < e1claim.block.timestamp;
+    require finishAt() < e1.block.timestamp;
     require balanceOf(e1.msg.sender) == 0;
     require rewards(e1.msg.sender) == 0;
 
