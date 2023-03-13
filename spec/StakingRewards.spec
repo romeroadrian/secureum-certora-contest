@@ -261,6 +261,23 @@ rule userWhoStakedBeforeShouldReceiveMoreRewards() {
     assert balance1After - balance1Before >= balance2After - balance2Before;
 }
 
+// OK!
+rule rewardsAreUpdatedOnStakeModifyingMethods() {
+    env e;
+    method f;
+    calldataarg args;
+    uint256 _finishAt = finishAt();
+    uint256 lastRewardApplicable = e.block.timestamp > _finishAt ? _finishAt : e.block.timestamp;
+
+    f(e, args);
+
+    assert (
+        f.selector == stake(uint256).selector ||
+        f.selector == withdraw(uint256).selector ||
+        f.selector == getReward().selector
+    ) => (updatedAt() == lastRewardApplicable);
+}
+
 // Risk Assesment
 
 // OK!
