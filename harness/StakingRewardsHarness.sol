@@ -14,4 +14,8 @@ contract StakingRewardsHarness is StakingRewards {
     }
 
     function updateRewardHelper(address user) external updateReward(user) {}
+
+    function rewardsWithUpdatedState(address user) external updateReward(user) returns (uint256) {
+        return rewards[user];
+    }
 }

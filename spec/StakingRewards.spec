@@ -26,7 +26,7 @@ methods{
     earned(address)                 returns uint256
     stake(uint256)
     withdraw(uint256)
-    getReward(address)
+    getReward()
     setRewardsDuration(uint256)
     notifyRewardAmount(uint256)
 }
@@ -40,8 +40,13 @@ hook Sstore balanceOf[KEY address account] uint256 value (uint256 old_value) STO
     sumOfBalances = sumOfBalances - old_value + value;
 }
 
+hook Sload uint256 value balanceOf[KEY address account] STORAGE {
+    require value <= sumOfBalances;
+}
+
 // Definitions
 definition callerIsNotContract(env e) returns bool = e.msg.sender != currentContract;​
+definition callerIsNotZero(env e) returns bool = e.msg.sender != 0;​
 
 rule sanity(env e, method f){
     calldataarg args;
@@ -263,6 +268,24 @@ rule monotonicityOfUserRewardPerTokenPaid() {
 }
 
 // OK!
+rule monotonicityOfUpdatedAt() {
+    env e;
+    method f;
+    calldataarg args;
+
+    uint256 updatedAtBefore = updatedAt();
+
+    require e.block.timestamp >= updatedAtBefore;
+    require updatedAtBefore <= finishAt();
+
+    f(e, args);
+
+    uint256 updatedAtAfter = updatedAt();
+
+    assert updatedAtAfter >= updatedAtBefore;
+}
+
+// OK!
 rule antimonotonicityOfStakingBalanceAndBalanceOfStake() {
     env e;
     method f;
@@ -298,6 +321,48 @@ rule antimonotonicityOfStakingBalanceAndTotalSupply() {
     uint256 totalSupplyAfter = totalSupply();
 
     assert stakingBalanceBefore < stakingBalanceAfter <=> totalSupplyBefore > totalSupplyAfter;
+}
+
+// OK!
+rule antimonotonicityOfStakingTokenBalance() {
+    env e;
+    method f;
+    calldataarg args;
+
+    require callerIsNotContract(e);
+
+    uint256 userBalanceBefore = stakingToken.balanceOf(e.msg.sender);
+    uint256 contractBalanceBefore = stakingToken.balanceOf(currentContract);
+
+    f(e, args);
+
+    uint256 userBalanceAfter = stakingToken.balanceOf(e.msg.sender);
+    uint256 contractBalanceAfter = stakingToken.balanceOf(currentContract);
+
+    // user goes up iff contract goes down
+    assert userBalanceBefore < userBalanceAfter <=> contractBalanceBefore > contractBalanceAfter;
+}
+
+// OK!
+rule antimonotonicityOfRewardTokenBalance(method f) filtered {
+    // skip test function
+    f -> f.selector != rewardTransferTest(address, uint256).selector
+} {
+    env e;
+    calldataarg args;
+
+    require callerIsNotContract(e);
+
+    uint256 userBalanceBefore = rewardsToken.balanceOf(e.msg.sender);
+    uint256 contractBalanceBefore = rewardsToken.balanceOf(currentContract);
+
+    f(e, args);
+
+    uint256 userBalanceAfter = rewardsToken.balanceOf(e.msg.sender);
+    uint256 contractBalanceAfter = rewardsToken.balanceOf(currentContract);
+
+    // user goes up iff contract goes down
+    assert userBalanceBefore < userBalanceAfter <=> contractBalanceBefore > contractBalanceAfter;
 }
 
 // OK!
@@ -417,6 +482,51 @@ invariant totalSupplyIsBalanceOfStakingToken()
 
 // High Level Properties
 
+// OK!
+rule twoStakersSameAmountSamePeriodGetSameRewards() {
+    env env1stake;
+    env env1claim;
+    env env2stake;
+    env env2claim;
+
+    // stake and claim are same caller
+    require env1stake.msg.sender == env1claim.msg.sender;
+    require env2stake.msg.sender == env2claim.msg.sender;
+    // env1 and env2 caller is different
+    require env1stake.msg.sender != env2stake.msg.sender;
+    // env1 and env2 callers are not current contract or zero address
+    require callerIsNotContract(env1stake);
+    require callerIsNotContract(env2stake);
+    require callerIsNotZero(env1stake);
+    require callerIsNotZero(env2stake);
+
+    // stake is before claim
+    require env1stake.block.timestamp < env1claim.block.timestamp;
+    require env2stake.block.timestamp < env2claim.block.timestamp;
+    // env1 and env2 are same timestamps
+    require env1stake.block.timestamp == env2stake.block.timestamp;
+    require env1claim.block.timestamp == env2claim.block.timestamp;
+
+    // both accounts have nothing staked at start
+    require balanceOf(env1stake.msg.sender) == 0;
+    require balanceOf(env2stake.msg.sender) == 0;
+
+    // track current rewards
+    uint256 rewardsBefore1 = rewardsWithUpdatedState(env1stake, env1stake.msg.sender);
+    uint256 rewardsBefore2 = rewardsWithUpdatedState(env2stake, env2stake.msg.sender);
+
+    // both stake same amount
+    uint256 amount;
+
+    stake(env1stake, amount);
+    stake(env2stake, amount);
+
+    uint256 earned1 = earned(env1claim, env1claim.msg.sender);
+    uint256 earned2 = earned(env2claim, env2claim.msg.sender);
+
+    assert earned1 - rewardsBefore1 == earned2 - rewardsBefore2;
+}
+
 // TODO
 // https://prover.certora.com/output/78195/475f86afe83f432aa6373743955ed252?anonymousKey=3a96ce001adbe229a8f3f8f466a3638549b39cfd
 rule userWhoStakedBeforeShouldReceiveMoreRewards() {
@@ -500,6 +610,25 @@ rule userCanStakeTwiceAndWithdrawAll() {
     uint256 balanceAfter = stakingToken.balanceOf(e.msg.sender);
 
     assert balanceBefore == balanceAfter;
+}
+
+// OK!
+rule userGetsEarnedRewards() {
+    env e;
+
+    require callerIsNotContract(e);
+    // address(0) doesnt update rewards! took me a while to figure this
+    require callerIsNotZero(e);
+
+    // updateRewardHelper(e, e.msg.sender);
+    uint256 earnedAmount = earned(e, e.msg.sender);
+    uint256 balanceBefore = rewardsToken.balanceOf(e.msg.sender);
+
+    getReward(e);
+
+    uint256 balanceAfter = rewardsToken.balanceOf(e.msg.sender);
+
+    assert balanceBefore + earnedAmount == balanceAfter;
 }
 
 // OK!
