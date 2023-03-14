@@ -181,6 +181,7 @@ rule monotonicityOfStakeWithSupply() {
     assert tokenBalanceBefore > tokenBalanceAfter <=> totalSupplyBefore > totalSupplyAfter;
 }
 
+// OK!
 rule monotonicityOfRewardPerToken() {
     env e;
     method f;
@@ -193,6 +194,7 @@ rule monotonicityOfRewardPerToken() {
     assert rewardPerTokenStoredAfter >= rewardPerTokenStoredBefore;
 }
 
+// OK!
 rule monotonicityOfUserRewardPerTokenPaid() {
     env e;
     method f;
@@ -223,6 +225,25 @@ rule antimonotonicityOfStakingBalanceAndBalanceOfStake() {
     uint256 balanceOfAfter = balanceOf(e.msg.sender);
 
     assert stakingBalanceBefore < stakingBalanceAfter <=> balanceOfBefore > balanceOfAfter;
+}
+
+// OK!
+rule antimonotonicityOfStakingBalanceAndTotalSupply() {
+    env e;
+    method f;
+    calldataarg args;
+
+    require callerIsNotContract(e);
+
+    uint256 stakingBalanceBefore = stakingToken.balanceOf(e.msg.sender);
+    uint256 totalSupplyBefore = totalSupply();
+
+    f(e, args);
+
+    uint256 stakingBalanceAfter = stakingToken.balanceOf(e.msg.sender);
+    uint256 totalSupplyAfter = totalSupply();
+
+    assert stakingBalanceBefore < stakingBalanceAfter <=> totalSupplyBefore > totalSupplyAfter;
 }
 
 // State transition
