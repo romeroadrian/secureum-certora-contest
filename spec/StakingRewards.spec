@@ -206,6 +206,25 @@ rule monotonicityOfUserRewardPerTokenPaid() {
     assert userRewardPerTokenPaidAfter >= userRewardPerTokenPaidBefore;
 }
 
+// OK!
+rule antimonotonicityOfStakingBalanceAndBalanceOfStake() {
+    env e;
+    method f;
+    calldataarg args;
+
+    require callerIsNotContract(e);
+
+    uint256 stakingBalanceBefore = stakingToken.balanceOf(e.msg.sender);
+    uint256 balanceOfBefore = balanceOf(e.msg.sender);
+
+    f(e, args);
+
+    uint256 stakingBalanceAfter = stakingToken.balanceOf(e.msg.sender);
+    uint256 balanceOfAfter = balanceOf(e.msg.sender);
+
+    assert stakingBalanceBefore < stakingBalanceAfter <=> balanceOfBefore > balanceOfAfter;
+}
+
 // State transition
 
 // OK!
