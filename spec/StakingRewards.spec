@@ -262,6 +262,23 @@ rule antimonotonicityOfStakingBalanceAndTotalSupply() {
     assert stakingBalanceBefore < stakingBalanceAfter <=> totalSupplyBefore > totalSupplyAfter;
 }
 
+// OK!
+rule monotonicityOfFinishAt(){
+    env e;
+    method f;
+    calldataarg args;
+
+    uint256 finishAtBefore = finishAt();
+
+    require e.block.timestamp >= finishAtBefore;
+
+    f(e, args);
+
+    uint256 finishAtAfter = finishAt();
+
+    assert finishAtBefore <= finishAtAfter;
+}
+
 // State transition
 
 // OK!
@@ -413,6 +430,23 @@ rule rewardsAreUpdatedOnStakeModifyingMethods() {
         f.selector == withdraw(uint256).selector ||
         f.selector == getReward().selector
     ) => (updatedAt() == lastRewardApplicable);
+}
+
+// OK!
+rule userCanStakeTwiceAndWithdrawAll() {
+    env e;
+    uint256 amount1;
+    uint256 amount2;
+
+    uint256 balanceBefore = stakingToken.balanceOf(e.msg.sender);
+
+    stake(e, amount1);
+    stake(e, amount2);
+    withdraw(e, amount1 + amount2);
+
+    uint256 balanceAfter = stakingToken.balanceOf(e.msg.sender);
+
+    assert balanceBefore == balanceAfter;
 }
 
 // Risk Assesment
