@@ -79,6 +79,44 @@ rule stakeTransfersTokensToContract() {
 }
 
 // OK!
+rule stakeUpdatesBalanceAndSupply() {
+    env e;
+    uint256 amount;
+
+    uint256 balanceBefore = balanceOf(e.msg.sender);
+    uint256 totalSupplyBefore = totalSupply();
+
+    require callerIsNotContract(e);
+
+    stake(e, amount);
+
+    uint256 balanceAfter = balanceOf(e.msg.sender);
+    uint256 totalSupplyAfter = totalSupply();
+
+    assert balanceBefore + amount == balanceAfter;
+    assert totalSupplyBefore + amount == totalSupplyAfter;
+}
+
+// OK!
+rule withdrawUpdatesBalanceAndSupply() {
+    env e;
+    uint256 amount;
+
+    uint256 balanceBefore = balanceOf(e.msg.sender);
+    uint256 totalSupplyBefore = totalSupply();
+
+    require callerIsNotContract(e);
+
+    withdraw(e, amount);
+
+    uint256 balanceAfter = balanceOf(e.msg.sender);
+    uint256 totalSupplyAfter = totalSupply();
+
+    assert balanceBefore - amount == balanceAfter;
+    assert totalSupplyBefore - amount == totalSupplyAfter;
+}
+
+// OK!
 rule userCanWithdrawStakedTokens() {
     env e;
     uint256 tokenBalance = stakingToken.balanceOf(e.msg.sender);
