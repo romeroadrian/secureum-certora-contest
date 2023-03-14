@@ -448,3 +448,57 @@ rule stakeAfterFinishDoesntYieldRewards() {
 
     assert balanceBefore == rewardsToken.balanceOf(e1.msg.sender);
 }
+
+// OK!
+rule getRewardOnlyModifiesRewardOfCaller() {
+    env e;
+    address other;
+
+    require callerIsNotContract(e);
+    require other != e.msg.sender;
+
+    uint256 otherRewardsBefore = rewardsWithUpdatedState(e, other);
+
+    getReward(e);
+
+    uint256 otherRewardsAfter = rewardsWithUpdatedState(e, other);
+
+    assert otherRewardsBefore == otherRewardsAfter;
+}
+
+// OK!
+rule withdrawOnlyModifiesBalanceOfCaller() {
+    env e;
+    address other;
+    uint256 amount;
+
+    require callerIsNotContract(e);
+    require other != e.msg.sender;
+
+    uint256 balanceOfBefore = balanceOf(other);
+
+    withdraw(e, amount);
+
+    uint256 balanceOfAfter = balanceOf(other);
+
+    assert balanceOfBefore == balanceOfAfter;
+}
+
+// OK!
+rule stakeOnlyModifiesBalanceOfCaller() {
+    env e;
+    address other;
+    uint256 amount;
+
+    require callerIsNotContract(e);
+    require other != e.msg.sender;
+
+    uint256 balanceOfBefore = balanceOf(other);
+
+    stake(e, amount);
+
+    uint256 balanceOfAfter = balanceOf(other);
+
+    assert balanceOfBefore == balanceOfAfter;
+}
+
