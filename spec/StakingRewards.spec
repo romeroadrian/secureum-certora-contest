@@ -336,6 +336,15 @@ invariant totalSupplyIsStakedBalance() totalSupply() == sumOfBalances
 // NOT WORKING
 invariant enoughRewardsToPayStakers(env e, address account) rewardsToken.balanceOf(currentContract) >= earned(e, account)
 
+// OK!
+invariant totalSupplyIsBalanceOfStakingToken()
+    totalSupply() == stakingToken.balanceOf(currentContract)
+    {
+        preserved with (env e2) {
+            require callerIsNotContract(e2);
+        }
+    }
+
 // High Level Properties
 
 // TODO
