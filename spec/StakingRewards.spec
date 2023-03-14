@@ -502,6 +502,45 @@ rule userCanStakeTwiceAndWithdrawAll() {
     assert balanceBefore == balanceAfter;
 }
 
+// OK!
+rule callerCannotModifyOtherAccount(method f) filtered {
+    // skip test function
+    f -> f.selector != updateRewardHelper(address).selector &&
+         f.selector != rewardsWithUpdatedState(address).selector
+} {
+    env e;
+    calldataarg args;
+
+    address other;
+    require e.msg.sender != other;
+
+    uint256 userRewardPerTokenPaidBefore = userRewardPerTokenPaid(other);
+    uint256 rewardsBefore = rewards(other);
+    uint256 balanceOfBefore = balanceOf(other);
+
+    f(e, args);
+
+    uint256 userRewardPerTokenPaidAfter = userRewardPerTokenPaid(other);
+    uint256 rewardsAfter = rewards(other);
+    uint256 balanceOfAfter = balanceOf(other);
+
+    assert userRewardPerTokenPaidBefore == userRewardPerTokenPaidAfter;
+    assert rewardsBefore == rewardsAfter;
+    assert balanceOfBefore == balanceOfAfter;
+}
+
+// OK!
+rule cannotChangeDurationWhileInProgress() {
+    env e;
+    uint256 duration;
+
+    require e.block.timestamp <= finishAt();
+
+    setRewardsDuration@withrevert(e, duration);
+
+    assert lastReverted;
+}
+
 // Risk Assesment
 
 // OK!
