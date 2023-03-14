@@ -279,6 +279,21 @@ rule monotonicityOfFinishAt(){
     assert finishAtBefore <= finishAtAfter;
 }
 
+// OK!
+rule ownerCannotChange() {
+    env e;
+    method f;
+    calldataarg args;
+
+    uint256 ownerBefore = owner();
+
+    f(e, args);
+
+    uint256 ownerAfter = owner();
+
+    assert ownerBefore == ownerAfter;
+}
+
 // State transition
 
 // OK!
@@ -561,3 +576,16 @@ rule stakeOnlyModifiesBalanceOfCaller() {
     assert balanceOfBefore == balanceOfAfter;
 }
 
+// OK!
+rule onlyOwnerMethods(method f) filtered {
+    f -> f.selector == setRewardsDuration(uint256).selector ||
+         f.selector == notifyRewardAmount(uint256).selector
+} {
+    env e;
+    calldataarg args;
+
+    f@withrevert(e, args);
+    require !lastReverted;
+
+    assert e.msg.sender == owner();
+}
