@@ -128,7 +128,7 @@ rule notifyUpdatesTimestamps() {
 }
 
 // Variable transition
-
+// OK!
 rule onlyDepositCanIncreaseStake() {
     env e;
     method f;
@@ -158,6 +158,22 @@ rule onlyWithdrawCanReduceStake() {
 
 
     assert tokenBalanceAfter < tokenBalanceBefore => f.selector == withdraw(uint256).selector;
+}
+
+// OK!
+rule onlyGetRewardCanReduceRewards() {
+    env e;
+    method f;
+    calldataarg args;
+    address account;
+
+    uint256 rewardsBefore = rewards(account);
+
+    f(e, args);
+
+    uint256 rewardsAfter = rewards(account);
+
+    assert rewardsAfter < rewardsBefore => f.selector == getReward().selector;
 }
 
 // OK!
