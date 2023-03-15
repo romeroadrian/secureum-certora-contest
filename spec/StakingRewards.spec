@@ -141,15 +141,18 @@ rule rewardsAreSentToUser() {
 
     updateRewardHelper(e, e.msg.sender);
 
-    uint256 balanceBefore = rewardsToken.balanceOf(e.msg.sender);
+    uint256 balanceContractBefore = rewardsToken.balanceOf(currentContract);
+    uint256 balanceUserBefore = rewardsToken.balanceOf(e.msg.sender);
     uint256 pendingRewards = rewards(e.msg.sender);
 
     getReward(e);
 
-    uint256 balanceAfter = rewardsToken.balanceOf(e.msg.sender);
+    uint256 balanceContractAfter = rewardsToken.balanceOf(currentContract);
+    uint256 balanceUserAfter = rewardsToken.balanceOf(e.msg.sender);
 
     assert rewards(e.msg.sender) == 0;
-    assert balanceAfter == balanceBefore + pendingRewards;
+    assert balanceUserAfter == balanceUserBefore + pendingRewards;
+    assert balanceContractAfter == balanceContractBefore - pendingRewards;
 }
 
 // OK
@@ -407,6 +410,34 @@ rule monotonicityOfFinishAt(){
     uint256 finishAtAfter = finishAt();
 
     assert finishAtBefore <= finishAtAfter;
+}
+
+// OK!
+rule monotonicityOfStakeInRelationWithRewards() {
+    env e_stake;
+    env e_claim;
+    storage start = lastStorage;
+
+    uint256 smallerAmount;
+    uint256 largerAmount;
+
+    require callerIsNotContract(e_stake);
+    require e_stake.msg.sender == e_claim.msg.sender;
+    require e_stake.block.timestamp < e_claim.msg.sender;
+
+    uint256 balanceBefore = rewardsToken.balanceOf(e_stake.msg.sender);
+
+    stake(e_stake, smallerAmount);
+    getReward(e_claim);
+
+    uint256 balanceAfterSmaller = rewardsToken.balanceOf(e_stake.msg.sender);
+
+    stake(e_stake, largerAmount) at start;
+    getReward(e_claim);
+
+    uint256 balanceAfterLarger = rewardsToken.balanceOf(e_stake.msg.sender);
+
+    assert balanceAfterSmaller < balanceAfterLarger => (balanceAfterSmaller - balanceBefore) <= (balanceAfterLarger - balanceBefore);
 }
 
 // OK!
