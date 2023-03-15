@@ -628,6 +628,55 @@ rule twoStakersLessAmountSamePeriodGetLessRewards() {
 }
 
 // OK!
+rule twoStakersDoubleAmountSamePeriodGetDoubleRewards() {
+    env env1stake;
+    env env1claim;
+    env env2stake;
+    env env2claim;
+
+    // stake and claim are same caller
+    require env1stake.msg.sender == env1claim.msg.sender;
+    require env2stake.msg.sender == env2claim.msg.sender;
+    // env1 and env2 caller is different
+    require env1stake.msg.sender != env2stake.msg.sender;
+    // env1 and env2 callers are not current contract or zero address
+    require callerIsNotContract(env1stake);
+    require callerIsNotContract(env2stake);
+    require callerIsNotZero(env1stake);
+    require callerIsNotZero(env2stake);
+
+    // stake is before claim
+    require env1stake.block.timestamp < env1claim.block.timestamp;
+    require env2stake.block.timestamp < env2claim.block.timestamp;
+    // env1 and env2 are same timestamps
+    require env1stake.block.timestamp == env2stake.block.timestamp;
+    require env1claim.block.timestamp == env2claim.block.timestamp;
+
+    // both accounts have nothing staked at start
+    require balanceOf(env1stake.msg.sender) == 0;
+    require balanceOf(env2stake.msg.sender) == 0;
+
+    // track current rewards
+    uint256 rewardsBefore1 = rewardsWithUpdatedState(env1stake, env1stake.msg.sender);
+    uint256 rewardsBefore2 = rewardsWithUpdatedState(env2stake, env2stake.msg.sender);
+
+    // both stake same amount
+    uint256 amount1;
+    uint256 amount2;
+
+    require amount1 * 2 == amount2;
+
+    stake(env1stake, amount1);
+    stake(env2stake, amount2);
+
+    uint256 earned1 = earned(env1claim, env1claim.msg.sender);
+    uint256 earned2 = earned(env2claim, env2claim.msg.sender);
+
+    // rounding...
+    assert (earned1 - rewardsBefore1) * 2 - (earned2 - rewardsBefore2) <= 1;
+}
+
+// OK!
 rule rewardsAreUpdatedOnStakeModifyingMethods() {
     env e;
     method f;
