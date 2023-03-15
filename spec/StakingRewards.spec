@@ -170,6 +170,16 @@ rule notifyUpdatesTimestamps() {
     );
 }
 
+// OK!
+rule notifiyEnsureRewardsAreEnough() {
+    env e;
+    uint256 amount;
+
+    notifyRewardAmount(e, amount);
+
+    assert rewardRate() * duration() <= rewardsToken.balanceOf(currentContract);
+}
+
 // Variable transition
 // OK!
 rule onlyDepositCanIncreaseStake() {
@@ -177,14 +187,22 @@ rule onlyDepositCanIncreaseStake() {
     method f;
     calldataarg args;
 
+    require callerIsNotContract(e);
+
     uint256 tokenBalanceBefore = stakingToken.balanceOf(currentContract);
+    uint256 totalSupplyBefore = totalSupply();
+    uint256 balanceOfBefore = balanceOf(e.msg.sender);
 
     f(e, args);
 
     uint256 tokenBalanceAfter = stakingToken.balanceOf(currentContract);
+    uint256 totalSupplyAfter = totalSupply();
+    uint256 balanceOfAfter = balanceOf(e.msg.sender);
 
 
-    assert tokenBalanceAfter > tokenBalanceBefore => f.selector == stake(uint256).selector;
+    assert tokenBalanceAfter > tokenBalanceBefore <=> f.selector == stake(uint256).selector;
+    assert totalSupplyAfter > totalSupplyBefore <=> f.selector == stake(uint256).selector;
+    assert balanceOfAfter > balanceOfBefore <=> f.selector == stake(uint256).selector;
 }
 
 // OK!
@@ -193,14 +211,22 @@ rule onlyWithdrawCanReduceStake() {
     method f;
     calldataarg args;
 
+    require callerIsNotContract(e);
+
     uint256 tokenBalanceBefore = stakingToken.balanceOf(currentContract);
+    uint256 totalSupplyBefore = totalSupply();
+    uint256 balanceOfBefore = balanceOf(e.msg.sender);
 
     f(e, args);
 
     uint256 tokenBalanceAfter = stakingToken.balanceOf(currentContract);
+    uint256 totalSupplyAfter = totalSupply();
+    uint256 balanceOfAfter = balanceOf(e.msg.sender);
 
 
-    assert tokenBalanceAfter < tokenBalanceBefore => f.selector == withdraw(uint256).selector;
+    assert tokenBalanceAfter < tokenBalanceBefore <=> f.selector == withdraw(uint256).selector;
+    assert totalSupplyAfter < totalSupplyBefore <=> f.selector == withdraw(uint256).selector;
+    assert balanceOfAfter < balanceOfBefore <=> f.selector == withdraw(uint256).selector;
 }
 
 // OK!
@@ -217,6 +243,7 @@ rule onlyGetRewardCanReduceRewards() {
     uint256 rewardsAfter = rewards(account);
 
     assert rewardsAfter < rewardsBefore => f.selector == getReward().selector;
+    assert f.selector == getReward().selector => rewardsAfter <= rewardsBefore;
 }
 
 // OK!
@@ -479,6 +506,10 @@ invariant totalSupplyIsBalanceOfStakingToken()
             require callerIsNotContract(e2);
         }
     }
+
+// OK!
+invariant updatedAtIsBeforeFinishAt()
+    updatedAt() <= finishAt()
 
 // High Level Properties
 
