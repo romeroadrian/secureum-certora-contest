@@ -183,6 +183,26 @@ rule notifiyEnsureRewardsAreEnough() {
     assert rewardRate() * duration() <= rewardsToken.balanceOf(currentContract);
 }
 
+// OK!
+rule cannotStakeZero() {
+    env e;
+    uint256 amount;
+
+    stake@withrevert(e, amount);
+
+    assert amount == 0 => lastReverted;
+}
+
+// OK!
+rule cannotWithdrawZero() {
+    env e;
+    uint256 amount;
+
+    withdraw@withrevert(e, amount);
+
+    assert amount == 0 => lastReverted;
+}
+
 // Variable transition
 // OK!
 rule onlyDepositCanIncreaseStake() {
@@ -588,6 +608,15 @@ invariant totalSupplyIsBalanceOfStakingToken()
 // OK!
 invariant updatedAtIsBeforeFinishAt()
     updatedAt() <= finishAt()
+
+// OK!
+invariant enoughCustodyOfSumOfBalances()
+    stakingToken.balanceOf(currentContract) >= sumOfBalances
+    {
+        preserved with (env e2) {
+            require callerIsNotContract(e2);
+        }
+    }
 
 // High Level Properties
 
@@ -1001,4 +1030,40 @@ rule onlyOwnerMethods(method f) filtered {
     require !lastReverted;
 
     assert e.msg.sender == owner();
+}
+
+// OK!
+rule callerCannotModifyOthersBalance() {
+    env e;
+    method f;
+    calldataarg args;
+    address other;
+
+    require callerIsNotContract(e);
+
+    uint256 balanceOfBefore = balanceOf(other);
+
+    f(e, args);
+
+    uint256 balanceOfAfter = balanceOf(other);
+
+    assert balanceOfBefore != balanceOfAfter => other == e.msg.sender;
+}
+
+// OK!
+rule callerCannotModifyOthersRewards() {
+    env e;
+    method f;
+    calldataarg args;
+    address other;
+
+    require callerIsNotContract(e);
+
+    uint256 rewardsBefore = rewardsWithUpdatedState(e, other);
+
+    f(e, args);
+
+    uint256 rewardsAfter = rewardsWithUpdatedState(e, other);
+
+    assert rewardsBefore != rewardsAfter => other == e.msg.sender;
 }
