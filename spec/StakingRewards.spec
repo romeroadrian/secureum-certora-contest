@@ -455,6 +455,37 @@ rule ownerCannotChange() {
     assert ownerBefore == ownerAfter;
 }
 
+// OK!
+rule stakingTokenCannotChange() {
+    env e;
+    method f;
+    calldataarg args;
+
+    uint256 stakingTokenBefore = stakingToken();
+
+    f(e, args);
+
+    uint256 stakingTokenAfter = stakingToken();
+
+    assert stakingTokenBefore == stakingTokenAfter;
+}
+
+// OK!
+rule rewardsTokenCannotChange() {
+    env e;
+    method f;
+    calldataarg args;
+
+    uint256 rewardsTokenBefore = rewardsToken();
+
+    f(e, args);
+
+    uint256 rewardsTokenAfter = rewardsToken();
+
+    assert rewardsTokenBefore == rewardsTokenAfter;
+}
+
+
 // State transition
 
 // OK!
@@ -526,8 +557,24 @@ rule userGetRewardState() {
 // OK!
 invariant totalSupplyIsStakedBalance() totalSupply() == sumOfBalances
 
-// NOT WORKING
-invariant enoughRewardsToPayStakers(env e, address account) rewardsToken.balanceOf(currentContract) >= earned(e, account)
+// OK!
+invariant enoughRewardsToPayStakers(env e, address account)
+    rewardsToken.balanceOf(currentContract) >= rewardsWithUpdatedState(e, account)
+    filtered {
+        f -> f.selector != rewardTransferTest(address, uint256).selector
+    }
+    {
+        preserved with (env e1) {
+            require callerIsNotZero(e1);
+            require callerIsNotContract(e1);
+            require e1.block.timestamp == e.block.timestamp;
+        }
+        preserved getReward() with (env e2) {
+            require account == e2.msg.sender;
+            require callerIsNotContract(e2);
+            require callerIsNotZero(e2);
+        }
+    }
 
 // OK!
 invariant totalSupplyIsBalanceOfStakingToken()
