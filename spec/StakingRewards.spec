@@ -527,55 +527,104 @@ rule twoStakersSameAmountSamePeriodGetSameRewards() {
     assert earned1 - rewardsBefore1 == earned2 - rewardsBefore2;
 }
 
-// TODO
-// https://prover.certora.com/output/78195/475f86afe83f432aa6373743955ed252?anonymousKey=3a96ce001adbe229a8f3f8f466a3638549b39cfd
-rule userWhoStakedBeforeShouldReceiveMoreRewards() {
-    env e1stake;
-    env e1claim;
-    env e2stake;
-    env e2claim;
+// OK!
+rule twoStakersSameAmountLessPeriodGetLessRewards() {
+    env env1stake;
+    env env1claim;
+    env env2stake;
+    env env2claim;
 
-    // e1 stakes before e2
-    require e1stake.block.timestamp < e2stake.block.timestamp;
-    // e1 claims after stake
-    require e1stake.block.timestamp < e1claim.block.timestamp;
-    // e2 claims after stake
-    require e2stake.block.timestamp < e2claim.block.timestamp;
-    // e2 claims not after e1
-    require e1claim.block.timestamp >= e2claim.block.timestamp;
+    // stake and claim are same caller
+    require env1stake.msg.sender == env1claim.msg.sender;
+    require env2stake.msg.sender == env2claim.msg.sender;
+    // env1 and env2 caller is different
+    require env1stake.msg.sender != env2stake.msg.sender;
+    // env1 and env2 callers are not current contract or zero address
+    require callerIsNotContract(env1stake);
+    require callerIsNotContract(env2stake);
+    require callerIsNotZero(env1stake);
+    require callerIsNotZero(env2stake);
 
-    require e1stake.msg.sender == e1claim.msg.sender;
-    require e2stake.msg.sender == e2claim.msg.sender;
-    require e1stake.msg.sender != e2stake.msg.sender;
+    require env1stake.msg.sender != rewardsToken;
+    require env1stake.msg.sender != stakingToken;
+    require env2stake.msg.sender != rewardsToken;
+    require env2stake.msg.sender != stakingToken;
 
-    require callerIsNotContract(e1stake);
-    require callerIsNotContract(e2stake);
+    // stake is before claim
+    require env1stake.block.timestamp < env1claim.block.timestamp;
+    require env2stake.block.timestamp < env2claim.block.timestamp;
+    // period1 is smaller than period2
+    require env1stake.block.timestamp == env2stake.block.timestamp;
+    require env1claim.block.timestamp < env2claim.block.timestamp;
 
-    // Ensure rewards are clear
-    updateRewardHelper(e1stake, e1stake.msg.sender);
-    getReward(e1stake);
-    updateRewardHelper(e2stake, e2stake.msg.sender);
-    getReward(e2stake);
+    // both accounts have nothing staked at start
+    require balanceOf(env1stake.msg.sender) == 0;
+    require balanceOf(env2stake.msg.sender) == 0;
 
-    require balanceOf(e1stake.msg.sender) == 0;
-    require balanceOf(e2stake.msg.sender) == 0;
+    // track current rewards
+    uint256 rewardsBefore1 = rewardsWithUpdatedState(env1stake, env1stake.msg.sender);
+    uint256 rewardsBefore2 = rewardsWithUpdatedState(env2stake, env2stake.msg.sender);
 
+    // both stake same amount
     uint256 amount;
-    require amount > 0;
 
-    uint256 balance1Before = rewardsToken.balanceOf(e1stake.msg.sender);
-    uint256 balance2Before = rewardsToken.balanceOf(e2stake.msg.sender);
+    stake(env1stake, amount);
+    stake(env2stake, amount);
 
-    stake(e1stake, amount);
-    stake(e2stake, amount);
+    uint256 earned1 = earned(env1claim, env1claim.msg.sender);
+    uint256 earned2 = earned(env2claim, env2claim.msg.sender);
 
-    getReward(e1claim);
-    getReward(e2claim);
+    // less or equal due to rounding
+    assert earned1 - rewardsBefore1 <= earned2 - rewardsBefore2;
+}
 
-    uint256 balance1After = rewardsToken.balanceOf(e1stake.msg.sender);
-    uint256 balance2After = rewardsToken.balanceOf(e2stake.msg.sender);
+// OK!
+rule twoStakersLessAmountSamePeriodGetLessRewards() {
+    env env1stake;
+    env env1claim;
+    env env2stake;
+    env env2claim;
 
-    assert balance1After - balance1Before >= balance2After - balance2Before;
+    // stake and claim are same caller
+    require env1stake.msg.sender == env1claim.msg.sender;
+    require env2stake.msg.sender == env2claim.msg.sender;
+    // env1 and env2 caller is different
+    require env1stake.msg.sender != env2stake.msg.sender;
+    // env1 and env2 callers are not current contract or zero address
+    require callerIsNotContract(env1stake);
+    require callerIsNotContract(env2stake);
+    require callerIsNotZero(env1stake);
+    require callerIsNotZero(env2stake);
+
+    // stake is before claim
+    require env1stake.block.timestamp < env1claim.block.timestamp;
+    require env2stake.block.timestamp < env2claim.block.timestamp;
+    // env1 and env2 are same timestamps
+    require env1stake.block.timestamp == env2stake.block.timestamp;
+    require env1claim.block.timestamp == env2claim.block.timestamp;
+
+    // both accounts have nothing staked at start
+    require balanceOf(env1stake.msg.sender) == 0;
+    require balanceOf(env2stake.msg.sender) == 0;
+
+    // track current rewards
+    uint256 rewardsBefore1 = rewardsWithUpdatedState(env1stake, env1stake.msg.sender);
+    uint256 rewardsBefore2 = rewardsWithUpdatedState(env2stake, env2stake.msg.sender);
+
+    // amount1 is less than amount2
+    uint256 amount1;
+    uint256 amount2;
+
+    require amount1 < amount2;
+
+    stake(env1stake, amount1);
+    stake(env2stake, amount2);
+
+    uint256 earned1 = earned(env1claim, env1claim.msg.sender);
+    uint256 earned2 = earned(env2claim, env2claim.msg.sender);
+
+    // less or equal due to rounding
+    assert earned1 - rewardsBefore1 <= earned2 - rewardsBefore2;
 }
 
 // OK!
