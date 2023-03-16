@@ -184,6 +184,16 @@ rule notifiyEnsureRewardsAreEnough() {
 }
 
 // OK!
+rule notifiyEnsureRewardRateIsPositive() {
+    env e;
+    uint256 amount;
+
+    notifyRewardAmount(e, amount);
+
+    assert rewardRate() > 0;
+}
+
+// OK!
 rule cannotStakeZero() {
     env e;
     uint256 amount;
@@ -617,6 +627,10 @@ invariant enoughCustodyOfSumOfBalances()
             require callerIsNotContract(e2);
         }
     }
+
+// OK!
+invariant rewardRateIsPositiveAfterStart()
+    finishAt() > 0 <=> rewardRate() > 0
 
 // High Level Properties
 
